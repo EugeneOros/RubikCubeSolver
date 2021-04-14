@@ -1,18 +1,11 @@
 import cv2
 from .color_detection import color_detector
-from src.config import config
+from .helpers import Keys
+from .calibration import Calibration
+from .scanner import Scanner
 from src.constants import (
-    COLOR_PLACEHOLDER,
-    CUBE_PALETTE,
-    MINI_STICKER_AREA_TILE_SIZE,
-    MINI_STICKER_AREA_TILE_GAP,
-    MINI_STICKER_AREA_OFFSET,
-    STICKER_AREA_TILE_SIZE,
-    STICKER_AREA_TILE_GAP,
-    STICKER_AREA_OFFSET,
     STICKER_CONTOUR_COLOR,
     CALIBRATE_MODE_KEY,
-    TEXT_SIZE,
     E_INCORRECTLY_SCANNED,
     E_ALREADY_SOLVED
 )
@@ -21,67 +14,18 @@ from src.constants import (
 class Webcam:
 
     def __init__(self):
-        self.colors_to_calibrate = ['green', 'red', 'blue', 'orange', 'white', 'yellow']
         self.cam = cv2.VideoCapture(0)
         self.average_sticker_colors = {}
-        self.result_state = {}
-
-        self.snapshot_state = [(255, 255, 255), (255, 255, 255), (255, 255, 255),
-                               (255, 255, 255), (255, 255, 255), (255, 255, 255),
-                               (255, 255, 255), (255, 255, 255), (255, 255, 255)]
-        self.preview_state = [(255, 255, 255), (255, 255, 255), (255, 255, 255),
-                              (255, 255, 255), (255, 255, 255), (255, 255, 255),
-                              (255, 255, 255), (255, 255, 255), (255, 255, 255)]
 
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1640)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         self.width = int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.calibration = Calibration(self.width)
+        self.scanner = Scanner(self.width, self.height)
 
-        self.calibrate_mode = False
-        self.calibrated_colors = {}
-        self.current_color_to_calibrate_index = 0
-        self.done_calibrating = False
-
-    def draw_stickers(self, frame, stickers, offset_x, offset_y):
-        """Draws the given stickers onto the given frame."""
-        index = -1
-        for row in range(3):
-            for col in range(3):
-                index += 1
-                x1 = (offset_x + STICKER_AREA_TILE_SIZE * col) + STICKER_AREA_TILE_GAP * col
-                y1 = (offset_y + STICKER_AREA_TILE_SIZE * row) + STICKER_AREA_TILE_GAP * row
-                x2 = x1 + STICKER_AREA_TILE_SIZE
-                y2 = y1 + STICKER_AREA_TILE_SIZE
-
-                # # shadow
-                cv2.rectangle(
-                    frame,
-                    (x1, y1),
-                    (x2, y2),
-                    (0, 0, 0),
-                    -1
-                )
-
-                # foreground color
-                cv2.rectangle(
-                    frame,
-                    (x1 + 1, y1 + 1),
-                    (x2 - 1, y2 - 1),
-                    color_detector.get_prominent_color(stickers[index]),
-                    -1
-                )
-
-    def draw_preview_stickers(self, frame):
-        """Draw the current preview state onto the given frame."""
-        self.draw_stickers(frame, self.preview_state, STICKER_AREA_OFFSET, STICKER_AREA_OFFSET)
-
-    def draw_snapshot_stickers(self, frame):
-        """Draw the current snapshot state onto the given frame."""
-        y = STICKER_AREA_TILE_SIZE * 3 + STICKER_AREA_TILE_GAP * 2 + STICKER_AREA_OFFSET * 2
-        self.draw_stickers(frame, self.snapshot_state, STICKER_AREA_OFFSET, y)
-
-    def find_contours(self, dilated_frame):
+    @staticmethod
+    def find_contours(dilated_frame):
         """Find the contours of a 3x3x3 cube."""
         contours, hierarchy = cv2.findContours(dilated_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         final_contours = []
@@ -98,7 +42,6 @@ class Webcam:
                 ratio = w / float(h)
 
                 # Check if contour is close to a square.
-                # if ratio >= 0.8 and ratio <= 1.2 and w >= 30 and w <= 60 and area / (w * h) > 0.4:
                 if 0.8 <= ratio <= 1.2 and 30 <= w <= 60 and area / (w * h) > 0.4:
                     final_contours.append((x, y, w, h))
 
@@ -191,22 +134,9 @@ class Webcam:
         sorted_contours = top_row + middle_row + bottom_row
         return sorted_contours
 
-    def scanned_successfully(self):
-        """Validate if the user scanned 9 colors for each side."""
-        color_count = {}
-        for side, preview in self.result_state.items():
-            for bgr in preview:
-                key = str(bgr)
-                if key not in color_count:
-                    color_count[key] = 1
-                else:
-                    color_count[key] = color_count[key] + 1
-        invalid_colors = [k for k, v in color_count.items() if v != 9]
-        return len(invalid_colors) == 0
-
     def draw_contours(self, frame, contours):
         """Draw contours onto the given frame."""
-        if self.calibrate_mode:
+        if self.calibration.calibrate_mode:
             # Only show the center piece contour.
             (x, y, w, h) = contours[4]
             cv2.rectangle(frame, (x, y), (x + w, y + h), STICKER_CONTOUR_COLOR, 2)
@@ -231,13 +161,13 @@ class Webcam:
                         sorted_items[key] = 1
                 most_common_color = max(sorted_items, key=lambda i: sorted_items[i])
                 self.average_sticker_colors[index] = []
-                self.preview_state[index] = eval(most_common_color)
+                self.scanner.preview_state[index] = eval(most_common_color)
                 break
 
             roi = frame[y + 7:y + h - 7, x + 14:x + w - 14]
             avg_bgr = color_detector.get_dominant_color(roi)
             closest_color = color_detector.get_closest_color(avg_bgr)['color_bgr']
-            self.preview_state[index] = closest_color
+            self.scanner.preview_state[index] = closest_color
             if index in self.average_sticker_colors:
                 self.average_sticker_colors[index].append(closest_color)
             else:
@@ -245,158 +175,14 @@ class Webcam:
 
     def update_snapshot_state(self, frame):
         """Update the snapshot state based on the current preview state."""
-        self.snapshot_state = list(self.preview_state)
-        center_color_name = color_detector.get_closest_color(self.snapshot_state[4])['color_name']
-        self.result_state[center_color_name] = self.snapshot_state
-        self.draw_snapshot_stickers(frame)
-
-    def render_text(self, frame, text, pos, color=(255, 255, 255), size=TEXT_SIZE, bottomLeftOrigin=False):
-        cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
-
-    def get_text_size(self, text, size=TEXT_SIZE):
-        """Get text size based on the default freetype2 loaded font."""
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        return cv2.getTextSize(text, font, 1, 2)
-
-    def draw_scanned_sides(self, frame):
-        """Display how many sides are scanned by the user."""
-        text = 'scanned sides: {}/6'.format(len(self.result_state.keys()))
-        # print(text)
-        self.render_text(frame, text, (20, self.height - 20), bottomLeftOrigin=True)
-
-    def draw_current_color_to_calibrate(self, frame):
-        """Display the current side's color that needs to be calibrated."""
-        y_offset = 20
-        font_size = int(TEXT_SIZE * 1.25)
-        if self.done_calibrating:
-            messages = [
-                'Calibrated successfully',
-                'Press c to quit calibrate mode',
-            ]
-            for index, text in enumerate(messages):
-                print(text)
-                # font_size
-                (textsize_width, textsize_height), _ = self.get_text_size(text)
-                y = y_offset + (textsize_height + 10) * index
-                self.render_text(frame, text, (int(self.width / 2 - textsize_width / 2), y), size=font_size)
-        else:
-            current_color = self.colors_to_calibrate[self.current_color_to_calibrate_index]
-            text = 'Calibrate the {} side'.format(current_color)
-            (textsize_width, textsize_height), _ = self.get_text_size(text, font_size)
-            self.render_text(frame, text, (int(self.width / 2 - textsize_width / 2), y_offset), size=font_size)
-
-    def draw_calibrated_colors(self, frame):
-        """Display all the colors that are calibrated while in calibrate mode."""
-        offset_y = 20
-        for index, (color_name, color_bgr) in enumerate(self.calibrated_colors.items()):
-            x1 = 90
-            y1 = int(offset_y + STICKER_AREA_TILE_SIZE * index)
-            x2 = x1 + STICKER_AREA_TILE_SIZE
-            y2 = y1 + STICKER_AREA_TILE_SIZE
-
-            # shadow
-            cv2.rectangle(
-                frame,
-                (x1, y1),
-                (x2, y2),
-                (0, 0, 0),
-                -1
-            )
-
-            # foreground
-            cv2.rectangle(
-                frame,
-                (x1 + 1, y1 + 1),
-                (x2 - 1, y2 - 1),
-                tuple([int(c) for c in color_bgr]),
-                -1
-            )
-            self.render_text(frame, color_name, (20, y1 + 3))
-
-    def reset_calibrate_mode(self):
-        """Reset calibrate mode variables."""
-        self.calibrated_colors = {}
-        self.current_color_to_calibrate_index = 0
-        self.done_calibrating = False
-
-    def draw_2d_cube_state(self, frame):
-        """
-        Create a 2D cube state visualization and draw the self.result_state.
-
-        We're gonna display the visualization like so:
-                    -----
-                  | W W W |
-                  | W W W |
-                  | W W W |
-            -----   -----   -----   -----
-          | O O O | G G G | R R R | B B B |
-          | O O O | G G G | R R R | B B B |
-          | O O O | G G G | R R R | B B B |
-            -----   -----   -----   -----
-                  | Y Y Y |
-                  | Y Y Y |
-                  | Y Y Y |
-                    -----
-        So we're gonna make a 4x3 grid and hardcode where each side has to go.
-        Based on the x and y in that 4x3 grid we can calculate its position.
-        """
-        grid = {
-            'white': [1, 0],
-            'orange': [0, 1],
-            'green': [1, 1],
-            'red': [2, 1],
-            'blue': [3, 1],
-            'yellow': [1, 2],
-        }
-
-        # The offset in-between each side (white, red, etc).
-        side_offset = MINI_STICKER_AREA_TILE_GAP * 3
-
-        # The size of 1 whole side (containing 9 stickers).
-        side_size = MINI_STICKER_AREA_TILE_SIZE * 3 + MINI_STICKER_AREA_TILE_GAP * 2
-
-        # The X and Y offset is placed in the bottom-right corner, minus the
-        # whole size of the 4x3 grid, minus an additional offset.
-        offset_x = self.width - (side_size * 4) - (side_offset * 3) - MINI_STICKER_AREA_OFFSET
-        offset_y = self.height - (side_size * 3) - (side_offset * 2) - MINI_STICKER_AREA_OFFSET
-
-        for side, (grid_x, grid_y) in grid.items():
-            index = -1
-            for row in range(3):
-                for col in range(3):
-                    index += 1
-                    x1 = int((offset_x + MINI_STICKER_AREA_TILE_SIZE * col) + (MINI_STICKER_AREA_TILE_GAP * col) + (
-                            (side_size + side_offset) * grid_x))
-                    y1 = int((offset_y + MINI_STICKER_AREA_TILE_SIZE * row) + (MINI_STICKER_AREA_TILE_GAP * row) + (
-                            (side_size + side_offset) * grid_y))
-                    x2 = int(x1 + MINI_STICKER_AREA_TILE_SIZE)
-                    y2 = int(y1 + MINI_STICKER_AREA_TILE_SIZE)
-
-                    foreground_color = COLOR_PLACEHOLDER
-                    if side in self.result_state:
-                        foreground_color = color_detector.get_prominent_color(self.result_state[side][index])
-
-                    # shadow
-                    cv2.rectangle(
-                        frame,
-                        (x1, y1),
-                        (x2, y2),
-                        (0, 0, 0),
-                        -1
-                    )
-
-                    # foreground color
-                    cv2.rectangle(
-                        frame,
-                        (x1 + 1, y1 + 1),
-                        (x2 - 1, y2 - 1),
-                        foreground_color,
-                        -1
-                    )
+        self.scanner.snapshot_state = list(self.scanner.preview_state)
+        center_color_name = color_detector.get_closest_color(self.scanner.snapshot_state[4])['color_name']
+        self.scanner.result_state[center_color_name] = self.scanner.snapshot_state
+        self.scanner.draw_snapshot_stickers(frame)
 
     def get_result_notation(self):
         """Convert all the sides and their BGR colors to cube notation."""
-        notation = dict(self.result_state)
+        notation = dict(self.scanner.result_state)
         for side, preview in notation.items():
             for sticker_index, bgr in enumerate(preview):
                 notation[side][sticker_index] = color_detector.convert_bgr_to_notation(bgr)
@@ -412,11 +198,11 @@ class Webcam:
         """Find out if the cube hasn't been solved already."""
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
             # Get the center color of the current side.
-            center_bgr = self.result_state[side][4]
+            center_bgr = self.scanner.result_state[side][4]
 
             # Compare the center color to all neighbors. If we come across a
             # different color, then we can assume the cube isn't solved yet.
-            for bgr in self.result_state[side]:
+            for bgr in self.scanner.result_state[side]:
                 if center_bgr != bgr:
                     return False
         return True
@@ -431,19 +217,17 @@ class Webcam:
             _, frame = self.cam.read()
             key = cv2.waitKey(10) & 0xff
 
-            # Quit on escape.
-            if key == 27:
+            if key == Keys.ESC:
                 break
 
-            if not self.calibrate_mode:
-                # Update the snapshot when space bar is pressed.
-                if key == 32:
+            if not self.calibration.calibrate_mode:
+                if key == Keys.SPACE:
                     self.update_snapshot_state(frame)
 
             # Toggle calibrate mode.
             if key == ord(CALIBRATE_MODE_KEY):
-                self.reset_calibrate_mode()
-                self.calibrate_mode = not self.calibrate_mode
+                self.calibration.reset_calibrate_mode()
+                self.calibration.calibrate_mode = not self.calibration.calibrate_mode
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred_frame = cv2.blur(gray_frame, (3, 3))
@@ -454,38 +238,29 @@ class Webcam:
             contours = self.find_contours(dilated_frame)
             if len(contours) == 9:
                 self.draw_contours(frame, contours)
-                if not self.calibrate_mode:
+                if not self.calibration.calibrate_mode:
                     self.update_preview_state(frame, contours)
-                elif key == 32 and self.done_calibrating is False:
-                    current_color = self.colors_to_calibrate[self.current_color_to_calibrate_index]
-                    (x, y, w, h) = contours[4]
-                    roi = frame[y + 7:y + h - 7, x + 14:x + w - 14]
-                    avg_bgr = color_detector.get_dominant_color(roi)
-                    self.calibrated_colors[current_color] = avg_bgr
-                    self.current_color_to_calibrate_index += 1
-                    self.done_calibrating = self.current_color_to_calibrate_index == len(self.colors_to_calibrate)
-                    if self.done_calibrating:
-                        color_detector.set_cube_color_palette(self.calibrated_colors)
-                        config.set_setting(CUBE_PALETTE, color_detector.cube_color_palette)
+                elif key == 32 and self.calibration.done_calibrating is False:
+                    self.calibration.on_space_pressed(frame, contours)
 
-            if self.calibrate_mode:
-                self.draw_current_color_to_calibrate(frame)
-                self.draw_calibrated_colors(frame)
+            if self.calibration.calibrate_mode:
+                self.calibration.draw_current_color_to_calibrate(frame)
+                self.calibration.draw_calibrated_colors(frame)
             else:
-                self.draw_preview_stickers(frame)
-                self.draw_snapshot_stickers(frame)
-                self.draw_scanned_sides(frame)
-                self.draw_2d_cube_state(frame)
+                self.scanner.draw_preview_stickers(frame)
+                self.scanner.draw_snapshot_stickers(frame)
+                self.scanner.draw_scanned_sides(frame)
+                self.scanner.draw_2d_cube_state(frame)
 
             cv2.imshow("Qbr - Rubik's cube solver", frame)
 
         self.cam.release()
         cv2.destroyAllWindows()
 
-        if len(self.result_state.keys()) != 6:
+        if len(self.scanner.result_state.keys()) != 6:
             return E_INCORRECTLY_SCANNED
 
-        if not self.scanned_successfully():
+        if not self.scanner.scanned_successfully():
             return E_INCORRECTLY_SCANNED
 
         if self.state_already_solved():
