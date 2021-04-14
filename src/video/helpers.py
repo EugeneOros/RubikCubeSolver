@@ -1,31 +1,14 @@
 import math
 
-from src.constants import TEXT_SIZE
 import cv2
+from src.constants import AppColors
 
 
-class ColorBlock:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    END = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
-class Keys:
-    SPACE = 32
-    ESC = 27
-
-
-def render_text(frame, text, pos, color=(255, 255, 255), size=TEXT_SIZE, bottomLeftOrigin=False):
+def render_text(frame, text, pos, color=AppColors.PLACEHOLDER):
     cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
 
 
-def get_text_size(text, size=TEXT_SIZE):
+def get_text_size(text):
     """Get text size based on the default freetype2 loaded font."""
     font = cv2.FONT_HERSHEY_SIMPLEX
     return cv2.getTextSize(text, font, 1, 2)

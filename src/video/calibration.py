@@ -1,4 +1,4 @@
-from src.constants import TEXT_SIZE, STICKER_AREA_TILE_SIZE, CUBE_PALETTE
+from src.constants import TEXT_SIZE, STICKER_AREA_TILE_SIZE, ConfigKeys
 from .helpers import render_text, get_text_size
 from .color_detection import color_detector
 from src.config import config
@@ -25,15 +25,14 @@ class Calibration:
             ]
             for index, text in enumerate(messages):
                 print(text)
-                # font_size
                 (text_size_width, text_size_height), _ = get_text_size(text)
                 y = y_offset + (text_size_height + 10) * index
-                render_text(frame, text, (int(self.width / 2 - text_size_width / 2), y), size=font_size)
+                render_text(frame, text, (int(self.width / 2 - text_size_width / 2), y))
         else:
             current_color = self.colors_to_calibrate[self.current_color_to_calibrate_index]
             text = 'Calibrate the {} side'.format(current_color)
-            (text_size_width, text_size_height), _ = get_text_size(text, font_size)
-            render_text(frame, text, (int(self.width / 2 - text_size_width / 2), y_offset), size=font_size)
+            (text_size_width, text_size_height), _ = get_text_size(text)
+            render_text(frame, text, (int(self.width / 2 - text_size_width / 2), y_offset))
 
     def draw_calibrated_colors(self, frame):
         """Display all the colors that are calibrated while in calibrate mode."""
@@ -73,7 +72,7 @@ class Calibration:
         self.done_calibrating = self.current_color_to_calibrate_index == len(self.colors_to_calibrate)
         if self.done_calibrating:
             color_detector.set_cube_color_palette(self.calibrated_colors)
-            config.set_setting(CUBE_PALETTE, color_detector.cube_color_palette)
+            config.set_setting(ConfigKeys.CUBE_PALETTE, color_detector.cube_color_palette)
 
     def reset_calibrate_mode(self):
         """Reset calibrate mode variables."""

@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 from .helpers import ciede2000, bgr2lab
 from src.config import config
-from src.constants import CUBE_PALETTE, COLOR_PLACEHOLDER
+from src.constants import AppColors, ConfigKeys
 
 
 class ColorDetection:
@@ -17,7 +17,7 @@ class ColorDetection:
             'yellow': (141, 186, 117)
         }
 
-        self.cube_color_palette = config.get_setting(CUBE_PALETTE, self.prominent_color_palette)
+        self.cube_color_palette = config.get_setting(ConfigKeys.CUBE_PALETTE, self.prominent_color_palette)
         for side, bgr in self.cube_color_palette.items():
             self.cube_color_palette[side] = tuple(bgr)
 
@@ -26,7 +26,7 @@ class ColorDetection:
         for color_name, color_bgr in self.cube_color_palette.items():
             if tuple([int(c) for c in bgr]) == color_bgr:
                 return self.prominent_color_palette[color_name]
-        return COLOR_PLACEHOLDER
+        return AppColors.PLACEHOLDER
 
     @staticmethod
     def get_dominant_color(roi):

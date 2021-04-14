@@ -1,4 +1,4 @@
-from src.constants import MINI_STICKER_AREA_TILE_GAP, MINI_STICKER_AREA_TILE_SIZE, MINI_STICKER_AREA_OFFSET, COLOR_PLACEHOLDER, STICKER_AREA_TILE_SIZE, \
+from src.constants import MINI_STICKER_AREA_TILE_GAP, MINI_STICKER_AREA_TILE_SIZE, MINI_STICKER_AREA_OFFSET, AppColors, STICKER_AREA_TILE_SIZE, \
     STICKER_AREA_TILE_GAP, STICKER_AREA_OFFSET
 from src.video.color_detection import color_detector
 import cv2
@@ -11,6 +11,7 @@ class Scanner:
         self.result_state = {}
         self.height = height
         self.width = width
+        self.average_sticker_colors = {}
         self.preview_state = [(255, 255, 255), (255, 255, 255), (255, 255, 255),
                               (255, 255, 255), (255, 255, 255), (255, 255, 255),
                               (255, 255, 255), (255, 255, 255), (255, 255, 255)]
@@ -18,18 +19,18 @@ class Scanner:
                                (255, 255, 255), (255, 255, 255), (255, 255, 255),
                                (255, 255, 255), (255, 255, 255), (255, 255, 255)]
 
-    def draw_stickers(self, frame, stickers, offset_x, offset_y):
-        """Draws the given stickers onto the given frame."""
+    @staticmethod
+    def draw_stickers(frame, stickers, offset_x, offset_y):
         index = -1
         for row in range(3):
             for col in range(3):
                 index += 1
-                x1 = (offset_x + STICKER_AREA_TILE_SIZE * col) + STICKER_AREA_TILE_GAP * col
-                y1 = (offset_y + STICKER_AREA_TILE_SIZE * row) + STICKER_AREA_TILE_GAP * row
+                x1 = (offset_x + 26 + STICKER_AREA_TILE_SIZE * col) + STICKER_AREA_TILE_GAP * col
+                y1 = (offset_y + 60 + STICKER_AREA_TILE_SIZE * row) + STICKER_AREA_TILE_GAP * row
                 x2 = x1 + STICKER_AREA_TILE_SIZE
                 y2 = y1 + STICKER_AREA_TILE_SIZE
 
-                # # shadow
+                # shadow
                 cv2.rectangle(
                     frame,
                     (x1, y1),
@@ -47,62 +48,49 @@ class Scanner:
                     -1
                 )
 
-    def draw_preview_stickers(self, frame):
-        """Draw the current preview state onto the given frame."""
+    def draw_preview(self, frame):
         self.draw_stickers(frame, self.preview_state, STICKER_AREA_OFFSET, STICKER_AREA_OFFSET)
 
-    def draw_snapshot_stickers(self, frame):
-        """Draw the current snapshot state onto the given frame."""
+    def draw_snapshot(self, frame):
         y = STICKER_AREA_TILE_SIZE * 3 + STICKER_AREA_TILE_GAP * 2 + STICKER_AREA_OFFSET * 2
-        self.draw_stickers(frame, self.snapshot_state, STICKER_AREA_OFFSET, y)
+        # self.draw_stickers(frame, self.snapshot_state, STICKER_AREA_OFFSET, y)
+
+    def update_preview_state(self, frame, contours):
+        max_average_rounds = 8
+        for index, (x, y, w, h) in enumerate(contours):
+            if index in self.average_sticker_colors and len(self.average_sticker_colors[index]) == max_average_rounds:
+                sorted_items = {}
+                for bgr in self.average_sticker_colors[index]:
+                    key = str(bgr)
+                    if key in sorted_items:
+                        sorted_items[key] += 1
+                    else:
+                        sorted_items[key] = 1
+                most_common_color = max(sorted_items, key=lambda i: sorted_items[i])
+                self.average_sticker_colors[index] = []
+                self.preview_state[index] = eval(most_common_color)
+                break
+
+            roi = frame[y + 7:y + h - 7, x + 14:x + w - 14]
+            avg_bgr = color_detector.get_dominant_color(roi)
+            closest_color = color_detector.get_closest_color(avg_bgr)['color_bgr']
+            self.preview_state[index] = closest_color
+            if index in self.average_sticker_colors:
+                self.average_sticker_colors[index].append(closest_color)
+            else:
+                self.average_sticker_colors[index] = [closest_color]
 
     def update_snapshot_state(self, frame):
-        """Update the snapshot state based on the current preview state."""
         self.snapshot_state = list(self.preview_state)
         center_color_name = color_detector.get_closest_color(self.snapshot_state[4])['color_name']
         self.result_state[center_color_name] = self.snapshot_state
-        self.draw_snapshot_stickers(frame)
+        self.draw_snapshot(frame)
 
     def draw_scanned_sides(self, frame):
-        """Display how many sides are scanned by the user."""
         text = 'scanned sides: {}/6'.format(len(self.result_state.keys()))
-        # print(text)
-        render_text(frame, text, (20, self.height - 20), bottomLeftOrigin=True)
-
-    def scanned_successfully(self):
-        """Validate if the user scanned 9 colors for each side."""
-        color_count = {}
-        for side, preview in self.result_state.items():
-            for bgr in preview:
-                key = str(bgr)
-                if key not in color_count:
-                    color_count[key] = 1
-                else:
-                    color_count[key] = color_count[key] + 1
-        invalid_colors = [k for k, v in color_count.items() if v != 9]
-        return len(invalid_colors) == 0
+        render_text(frame, text, (20, 40))
 
     def draw_2d_cube_state(self, frame):
-        """
-        Create a 2D cube state visualization and draw the self.result_state.
-
-        We're gonna display the visualization like so:
-                    -----
-                  | W W W |
-                  | W W W |
-                  | W W W |
-            -----   -----   -----   -----
-          | O O O | G G G | R R R | B B B |
-          | O O O | G G G | R R R | B B B |
-          | O O O | G G G | R R R | B B B |
-            -----   -----   -----   -----
-                  | Y Y Y |
-                  | Y Y Y |
-                  | Y Y Y |
-                    -----
-        So we're gonna make a 4x3 grid and hardcode where each side has to go.
-        Based on the x and y in that 4x3 grid we can calculate its position.
-        """
         grid = {
             'white': [1, 0],
             'orange': [0, 1],
@@ -112,7 +100,6 @@ class Scanner:
             'yellow': [1, 2],
         }
 
-        # The offset in-between each side (white, red, etc).
         side_offset = MINI_STICKER_AREA_TILE_GAP * 3
 
         # The size of 1 whole side (containing 9 stickers).
@@ -120,8 +107,8 @@ class Scanner:
 
         # The X and Y offset is placed in the bottom-right corner, minus the
         # whole size of the 4x3 grid, minus an additional offset.
-        offset_x = self.width - (side_size * 4) - (side_offset * 3) - MINI_STICKER_AREA_OFFSET
-        offset_y = self.height - (side_size * 3) - (side_offset * 2) - MINI_STICKER_AREA_OFFSET
+        offset_x = 20  # (side_size * 4) + (side_offset * 3) + MINI_STICKER_AREA_OFFSET
+        offset_y = self.height - (side_size * 4) - (side_offset * 2) - MINI_STICKER_AREA_OFFSET
 
         for side, (grid_x, grid_y) in grid.items():
             index = -1
@@ -135,7 +122,7 @@ class Scanner:
                     x2 = int(x1 + MINI_STICKER_AREA_TILE_SIZE)
                     y2 = int(y1 + MINI_STICKER_AREA_TILE_SIZE)
 
-                    foreground_color = COLOR_PLACEHOLDER
+                    foreground_color = AppColors.PLACEHOLDER
                     if side in self.result_state:
                         foreground_color = color_detector.get_prominent_color(self.result_state[side][index])
 

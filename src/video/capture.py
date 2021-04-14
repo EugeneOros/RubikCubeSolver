@@ -1,13 +1,11 @@
 import cv2
 from .color_detection import color_detector
-from .helpers import Keys
 from .calibration import Calibration
 from .scanner import Scanner
 from src.constants import (
-    STICKER_CONTOUR_COLOR,
-    CALIBRATE_MODE_KEY,
-    E_INCORRECTLY_SCANNED,
-    E_ALREADY_SOLVED
+    AppColors,
+    Keys,
+    Errors,
 )
 
 
@@ -15,9 +13,8 @@ class Webcam:
 
     def __init__(self):
         self.cam = cv2.VideoCapture(0)
-        self.average_sticker_colors = {}
 
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1640)
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         self.width = int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -26,7 +23,6 @@ class Webcam:
 
     @staticmethod
     def find_contours(dilated_frame):
-        """Find the contours of a 3x3x3 cube."""
         contours, hierarchy = cv2.findContours(dilated_frame, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         final_contours = []
 
@@ -135,50 +131,12 @@ class Webcam:
         return sorted_contours
 
     def draw_contours(self, frame, contours):
-        """Draw contours onto the given frame."""
         if self.calibration.calibrate_mode:
-            # Only show the center piece contour.
             (x, y, w, h) = contours[4]
-            cv2.rectangle(frame, (x, y), (x + w, y + h), STICKER_CONTOUR_COLOR, 2)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), AppColors.STICKER_CONTOUR, 2)
         else:
             for index, (x, y, w, h) in enumerate(contours):
-                cv2.rectangle(frame, (x, y), (x + w, y + h), STICKER_CONTOUR_COLOR, 2)
-
-    def update_preview_state(self, frame, contours):
-        """
-        Get the average color value for the contour for every X amount of frames
-        to prevent flickering and more precise results.
-        """
-        max_average_rounds = 8
-        for index, (x, y, w, h) in enumerate(contours):
-            if index in self.average_sticker_colors and len(self.average_sticker_colors[index]) == max_average_rounds:
-                sorted_items = {}
-                for bgr in self.average_sticker_colors[index]:
-                    key = str(bgr)
-                    if key in sorted_items:
-                        sorted_items[key] += 1
-                    else:
-                        sorted_items[key] = 1
-                most_common_color = max(sorted_items, key=lambda i: sorted_items[i])
-                self.average_sticker_colors[index] = []
-                self.scanner.preview_state[index] = eval(most_common_color)
-                break
-
-            roi = frame[y + 7:y + h - 7, x + 14:x + w - 14]
-            avg_bgr = color_detector.get_dominant_color(roi)
-            closest_color = color_detector.get_closest_color(avg_bgr)['color_bgr']
-            self.scanner.preview_state[index] = closest_color
-            if index in self.average_sticker_colors:
-                self.average_sticker_colors[index].append(closest_color)
-            else:
-                self.average_sticker_colors[index] = [closest_color]
-
-    def update_snapshot_state(self, frame):
-        """Update the snapshot state based on the current preview state."""
-        self.scanner.snapshot_state = list(self.scanner.preview_state)
-        center_color_name = color_detector.get_closest_color(self.scanner.snapshot_state[4])['color_name']
-        self.scanner.result_state[center_color_name] = self.scanner.snapshot_state
-        self.scanner.draw_snapshot_stickers(frame)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), AppColors.STICKER_CONTOUR, 2)
 
     def get_result_notation(self):
         """Convert all the sides and their BGR colors to cube notation."""
@@ -186,33 +144,38 @@ class Webcam:
         for side, preview in notation.items():
             for sticker_index, bgr in enumerate(preview):
                 notation[side][sticker_index] = color_detector.convert_bgr_to_notation(bgr)
-
-        # Join all the sides together into one single string.
-        # Order must be URFDLB (white, red, green, yellow, orange, blue)
         combined = ''
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
             combined += ''.join(notation[side])
+        print(combined)
         return combined
 
-    def state_already_solved(self):
-        """Find out if the cube hasn't been solved already."""
+    def check_already_solved(self):
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
-            # Get the center color of the current side.
             center_bgr = self.scanner.result_state[side][4]
-
-            # Compare the center color to all neighbors. If we come across a
-            # different color, then we can assume the cube isn't solved yet.
             for bgr in self.scanner.result_state[side]:
                 if center_bgr != bgr:
                     return False
         return True
 
-    def run(self):
-        """
-        Open up the webcam and present the user with the Qbr user interface.
+    def check_color_count(self):
+        color_count = {}
+        for side, preview in self.scanner.result_state.items():
+            for bgr in preview:
+                key = str(bgr)
+                if key not in color_count:
+                    color_count[key] = 1
+                else:
+                    color_count[key] += 1
+        for _, v in color_count.items():
+            if v != 9:
+                return False
+        return True
 
-        Returns a string of the scanned state in rubik's cube notation.
-        """
+    def check_sides_count(self):
+        return len(self.scanner.result_state.keys()) == 6
+
+    def run(self):
         while True:
             _, frame = self.cam.read()
             key = cv2.waitKey(10) & 0xff
@@ -222,10 +185,10 @@ class Webcam:
 
             if not self.calibration.calibrate_mode:
                 if key == Keys.SPACE:
-                    self.update_snapshot_state(frame)
+                    self.scanner.update_snapshot_state(frame)
 
             # Toggle calibrate mode.
-            if key == ord(CALIBRATE_MODE_KEY):
+            if key == Keys.C_KEY:
                 self.calibration.reset_calibrate_mode()
                 self.calibration.calibrate_mode = not self.calibration.calibrate_mode
 
@@ -239,7 +202,7 @@ class Webcam:
             if len(contours) == 9:
                 self.draw_contours(frame, contours)
                 if not self.calibration.calibrate_mode:
-                    self.update_preview_state(frame, contours)
+                    self.scanner.update_preview_state(frame, contours)
                 elif key == 32 and self.calibration.done_calibrating is False:
                     self.calibration.on_space_pressed(frame, contours)
 
@@ -247,24 +210,20 @@ class Webcam:
                 self.calibration.draw_current_color_to_calibrate(frame)
                 self.calibration.draw_calibrated_colors(frame)
             else:
-                self.scanner.draw_preview_stickers(frame)
-                self.scanner.draw_snapshot_stickers(frame)
+                self.scanner.draw_preview(frame)
+                self.scanner.draw_snapshot(frame)
                 self.scanner.draw_scanned_sides(frame)
                 self.scanner.draw_2d_cube_state(frame)
 
-            cv2.imshow("Qbr - Rubik's cube solver", frame)
+            cv2.imshow("Rubik's Cube Solver", frame)
 
         self.cam.release()
         cv2.destroyAllWindows()
 
-        if len(self.scanner.result_state.keys()) != 6:
-            return E_INCORRECTLY_SCANNED
-
-        if not self.scanner.scanned_successfully():
-            return E_INCORRECTLY_SCANNED
-
-        if self.state_already_solved():
-            return E_ALREADY_SOLVED
+        if not (self.check_sides_count() and self.check_color_count()):
+            return Errors.INCORRECTLY_SCANNED
+        elif self.check_already_solved():
+            return Errors.ALREADY_SOLVED
 
         return self.get_result_notation()
 

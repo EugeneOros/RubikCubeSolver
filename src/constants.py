@@ -4,7 +4,6 @@ import os
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Colors
-COLOR_PLACEHOLDER = (150, 150, 150)
 
 
 # Camera interface
@@ -16,15 +15,37 @@ STICKER_AREA_TILE_SIZE = 30
 STICKER_AREA_TILE_GAP = 4
 STICKER_AREA_OFFSET = 20
 
-STICKER_CONTOUR_COLOR = (36, 255, 12)
-CALIBRATE_MODE_KEY = 'c'
-SWITCH_LANGUAGE_KEY = 'l'
 TEXT_SIZE = 10
 
-# Config
-CUBE_PALETTE = 'cube_palette'
 
-# Application errors
-E_INCORRECTLY_SCANNED = 1
-E_ALREADY_SOLVED = 2
-E_STOP = 3
+class AppColors:
+    PLACEHOLDER = (43, 43, 43)
+    STICKER_CONTOUR = (230, 245, 93)
+
+
+class Keys:
+    SPACE = 32
+    ESC = 27
+    C_KEY = ord("c")
+
+
+class ColorBlock:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    END = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+class Errors:
+    INCORRECTLY_SCANNED = 1
+    ALREADY_SOLVED = 2
+    STOP = 3
+
+
+class ConfigKeys:
+    CUBE_PALETTE = 'cube_palette'
