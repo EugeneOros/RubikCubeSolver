@@ -38,7 +38,7 @@ class Webcam:
                 ratio = w / float(h)
 
                 # Check if contour is close to a square.
-                if 0.8 <= ratio <= 1.2 and 30 <= w <= 60 and area / (w * h) > 0.4:
+                if 0.8 <= ratio <= 1.2 and 30 <= w <= 90 and area / (w * h) > 0.4:
                     final_contours.append((x, y, w, h))
 
         # Return early if we didn't found 9 or more contours.
