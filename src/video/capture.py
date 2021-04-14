@@ -147,7 +147,6 @@ class Webcam:
         combined = ''
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
             combined += ''.join(notation[side])
-        print(combined)
         return combined
 
     def check_already_solved(self):
