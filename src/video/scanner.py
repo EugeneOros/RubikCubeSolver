@@ -55,6 +55,9 @@ class Scanner:
         y = STICKER_AREA_TILE_SIZE * 3 + STICKER_AREA_TILE_GAP * 2 + STICKER_AREA_OFFSET * 2
         # self.draw_stickers(frame, self.snapshot_state, STICKER_AREA_OFFSET, y)
 
+    def draw_scrambled_mode(self, frame):
+        render_text(frame, "Scrambled mode ON", (300,450))
+
     def update_preview_state(self, frame, contours):
         max_average_rounds = 8
         for index, (x, y, w, h) in enumerate(contours):

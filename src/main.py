@@ -13,7 +13,7 @@ def error(state):
     elif state == Errors.STOP:
         print('\033[0;33m[error] Program stopped')
     elif state == Errors.INCORRECTLY_SCRAMBLED:
-        print('\033[0;33m[error] The scanned cube does not match with generated scramble (to toggle scramble mode press \"s\"). \n Make sure you scanned the cube correctly')
+        print(ColorBlock.WARNING + '[error] The scanned cube does not match with generated scramble (to toggle scramble mode press \"s\").\n' + ColorBlock.END)
     sys.exit(state)
 
 

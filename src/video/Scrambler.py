@@ -40,7 +40,7 @@ class Scrambler():
         # print(scr)
         return (scr, cube)
     
-    def resest_scramble_mode(self):
+    def reset_scramble_mode(self):
         self.expected_state = []
 
 

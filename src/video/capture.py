@@ -178,8 +178,9 @@ class Webcam:
         return len(self.scanner.result_state.keys()) == 6
 
     def check_correctly_scrambled(self):
-        print(self.scanner.result_state.items())
-        print(self.expected_state)
+        # print(self.scanner.result_state.items())
+        # print(self.expected_state)
+        pass
 
 
     def run(self):
@@ -200,11 +201,12 @@ class Webcam:
                 self.calibration.calibrate_mode = not self.calibration.calibrate_mode
             
             if not self.calibration.calibrate_mode and key == Keys.S_KEY:
-                self.scrambler.resest_scramble_mode()
+                self.scrambler.reset_scramble_mode()
                 self.scrambler.scramble_mode = not self.scrambler.scramble_mode
                 if self.scrambler.scramble_mode:
                     (scramble, self.expected_state) = self.scrambler.gen_scramble()
                     print(scramble)
+                
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred_frame = cv2.blur(gray_frame, (3, 3))
@@ -229,6 +231,10 @@ class Webcam:
                 self.scanner.draw_scanned_sides(frame)
                 self.scanner.draw_2d_cube_state(frame)
 
+            if self.scrambler.scramble_mode:
+                self.scanner.draw_scrambled_mode(frame)
+
+
             cv2.imshow("Rubik's Cube Solver", frame)
 
         self.cam.release()
@@ -240,7 +246,10 @@ class Webcam:
             return Errors.ALREADY_SOLVED
 
         if self.scrambler.scramble_mode and not self.check_correctly_scrambled():
-            return Errors.INCORRETLY_SCRAMBLED
+            return Errors.INCORRECTLY_SCRAMBLED
+
+
+
 
         return self.get_result_notation()
 
