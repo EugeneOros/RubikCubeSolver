@@ -2,6 +2,8 @@ import os
 from enum import Enum
 
 # Global
+from rubik.maths import Point
+
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Colors
@@ -22,6 +24,15 @@ TEXT_SIZE = 10
 class AppColors:
     PLACEHOLDER = (43, 43, 43)
     STICKER_CONTOUR = (230, 245, 93)
+
+
+class CubePosition:
+    RIGHT = X_AXIS = Point(1, 0, 0)
+    LEFT = Point(-1, 0, 0)
+    UP = Y_AXIS = Point(0, 1, 0)
+    DOWN = Point(0, -1, 0)
+    FRONT = Z_AXIS = Point(0, 0, 1)
+    BACK = Point(0, 0, -1)
 
 
 class Moves:

@@ -3,6 +3,7 @@ from .color_detection import color_detector
 from .calibration import Calibration
 from .scanner import Scanner
 from .solver import Solver
+import kociemba
 from constants import (
     AppColors,
     Keys,
@@ -11,6 +12,8 @@ from constants import (
     RotationCube,
     AppMode
 )
+
+from rubik.cube import Cube
 from .scrambler import Scrambler
 
 
@@ -235,8 +238,15 @@ class Webcam:
         combined = ''
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
             combined += ''.join(notation[side])
-        print(combined)
-        return combined
+        s = (notation['white']
+             + notation['orange'][0:3] + notation['green'][0:3] + notation['red'][0:3] + notation['blue'][0:3]
+             + notation['orange'][3:6] + notation['green'][3:6] + notation['red'][3:6] + notation['blue'][3:6]
+             + notation['orange'][6:9] + notation['green'][6:9] + notation['red'][6:9] + notation['blue'][6:9]
+             + notation['yellow'])
+        # c = Cube(s)
+        # print(c)
+        # print(combined)
+        return combined, s
 
     def check_already_solved(self):
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
@@ -279,8 +289,14 @@ class Webcam:
             if key == Keys.ENTER:
                 if self.mode == AppMode.SOLVING:
                     self.mode = AppMode.SCANNING
-                elif self.mode == AppMode.SCANNING and self.check_sides_count():
+                # elif self.mode == AppMode.SCANNING and self.check_sides_count():
+                elif self.mode == AppMode.SCANNING:
                     self.mode = AppMode.SOLVING
+                    kociemba_str = "RRRBUFBUFRRBRRDRRFUFDUFDUFDFDBFDBLLLFLLULLBLLUUUBBBDDD"
+                    cube_str = "RRR BUF BUF FLL UFD RRB UUU ULL UFD RRD BBB BLL UFD RRF DDD FDB FDB LLL"
+                    # kociemba_str, cube_str = self.get_result_notation()
+                    algorithm = kociemba.solve(kociemba_str)
+                    self.solver.set_cube(cube_str, algorithm)
 
             if self.mode == AppMode.SCANNING:
                 if key == Keys.SPACE:
@@ -329,11 +345,13 @@ class Webcam:
                 self.scanner.draw_scanned_sides(frame)
                 self.scanner.draw_2d_cube_state(frame)
             elif self.mode == AppMode.SOLVING:
-                if not (self.check_sides_count() and self.check_color_count()):
-                    self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
-                elif self.check_already_solved():
-                    self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
+                # if not (self.check_sides_count() and self.check_color_count()):
+                #     self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
+                # elif self.check_already_solved():
+                #     self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
                 self.solver.draw_preview(frame)
+                self.solver.draw_expected_side(frame)
+                self.solver.draw_expected_result(frame)
 
             cv2.imshow("Rubik's Cube Solver", frame)
 
