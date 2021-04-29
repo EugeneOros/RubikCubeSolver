@@ -2,7 +2,7 @@ import cv2
 from .color_detection import color_detector
 from .calibration import Calibration
 from .scanner import Scanner
-from src.constants import (
+from constants import (
     AppColors,
     Keys,
     Errors,
