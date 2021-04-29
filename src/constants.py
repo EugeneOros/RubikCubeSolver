@@ -56,7 +56,7 @@ class Keys:
     SPACE = 32
     ESC = 27
     C_KEY = ord("c")
-    S_KEY = ord("s")
+    S_KEY= ord("s")
 
 
 class ColorBlock:
@@ -75,6 +75,7 @@ class Errors:
     INCORRECTLY_SCANNED = 1
     ALREADY_SOLVED = 2
     STOP = 3
+    INCORRECTLY_SCRAMBLED = 4
 
 
 class ConfigKeys:

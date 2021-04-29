@@ -11,6 +11,7 @@ from constants import (
     RotationCube,
     AppMode
 )
+from .scrambler import Scrambler
 
 
 class Webcam:
@@ -26,7 +27,9 @@ class Webcam:
         self.width = int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.calibration = Calibration(self.width)
+        self.scrambler = Scrambler()
         self.scanner = Scanner(self.width, self.height)
+        self.expected_state = []
         self.solver = Solver(self.width, self.height)
 
     @staticmethod
@@ -259,6 +262,12 @@ class Webcam:
     def check_sides_count(self):
         return len(self.scanner.result_state.keys()) == 6
 
+    def check_correctly_scrambled(self):
+        # print(self.scanner.result_state.items())
+        # print(self.expected_state)
+        pass
+
+
     def run(self):
         while True:
             _, frame = self.cam.read()
@@ -285,6 +294,13 @@ class Webcam:
                 else:
                     self.previous_mode = self.mode
                     self.mode = AppMode.CALIBRATION
+
+            if self.mode == AppMode.SCANNING and key == Keys.S_KEY:
+                self.scrambler.reset_scramble_mode()
+                self.scrambler.scramble_mode = not self.scrambler.scramble_mode
+                if self.scrambler.scramble_mode:
+                    (scramble, self.expected_state) = self.scrambler.gen_scramble()
+                    print(scramble)
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred_frame = cv2.blur(gray_frame, (3, 3))
@@ -316,6 +332,12 @@ class Webcam:
                 else:
                     # Todo
                     print("solving")
+            
+
+            if self.scrambler.scramble_mode:
+                self.scanner.draw_scrambled_mode(frame)
+            
+            
             cv2.imshow("Rubik's Cube Solver", frame)
 
         self.cam.release()
@@ -325,6 +347,12 @@ class Webcam:
             return Errors.INCORRECTLY_SCANNED
         elif self.check_already_solved():
             return Errors.ALREADY_SOLVED
+
+        if self.scrambler.scramble_mode and not self.check_correctly_scrambled():
+            return Errors.INCORRECTLY_SCRAMBLED
+
+
+
 
         return self.get_result_notation()
 
