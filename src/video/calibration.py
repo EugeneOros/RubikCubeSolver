@@ -23,7 +23,7 @@ class Calibration:
                 'Press c to quit calibrate mode',
             ]
             for index, text in enumerate(messages):
-                print(text)
+                # print(text)
                 (text_size_width, text_size_height), _ = get_text_size(text)
                 y = y_offset + (text_size_height + 10) * index
                 render_text(frame, text, (int(self.width / 2 - text_size_width / 2), y))

@@ -223,7 +223,7 @@ class Webcam:
         else:
             for index, (x, y, w, h) in enumerate(contours):
                 cv2.rectangle(frame, (x, y), (x + w, y + h), AppColors.STICKER_CONTOUR, 2)
-        self.draw_move(frame, contours, Moves.LEFT)
+        # self.draw_move(frame, contours, Moves.LEFT)
         # self.draw_rotation(frame, contours, RotationCube.RIGHT)
 
     def get_result_notation(self):
@@ -235,6 +235,7 @@ class Webcam:
         combined = ''
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
             combined += ''.join(notation[side])
+        print(combined)
         return combined
 
     def check_already_solved(self):
@@ -267,7 +268,6 @@ class Webcam:
         # print(self.expected_state)
         pass
 
-
     def run(self):
         while True:
             _, frame = self.cam.read()
@@ -276,15 +276,15 @@ class Webcam:
             if key == Keys.ESC:
                 break
 
+            if key == Keys.ENTER:
+                if self.mode == AppMode.SOLVING:
+                    self.mode = AppMode.SCANNING
+                elif self.mode == AppMode.SCANNING and self.check_sides_count():
+                    self.mode = AppMode.SOLVING
+
             if self.mode == AppMode.SCANNING:
                 if key == Keys.SPACE:
                     self.scanner.update_snapshot_state(frame)
-                elif key == Keys.S_KEY and self.check_sides_count():
-                    self.mode = AppMode.SOLVING
-
-            if self.mode == AppMode.SOLVING:
-                if key == Keys.S_KEY:
-                    self.mode = AppMode.SCANNING
 
             # Toggle calibrate mode.
             if key == Keys.C_KEY:
@@ -313,6 +313,8 @@ class Webcam:
                 self.draw_contours(frame, contours)
                 if self.mode == AppMode.SCANNING:
                     self.scanner.update_preview_state(frame, contours)
+                if self.mode == AppMode.SOLVING:
+                    self.solver.update_preview_state(frame, contours)
                 elif key == Keys.SPACE and self.calibration.done_calibrating is False:
                     self.calibration.on_space_pressed(frame, contours)
 
@@ -320,6 +322,8 @@ class Webcam:
                 self.calibration.draw_current_color_to_calibrate(frame)
                 self.calibration.draw_calibrated_colors(frame)
             elif self.mode == AppMode.SCANNING:
+                if self.scrambler.scramble_mode:
+                    self.scanner.draw_scrambled_mode(frame)
                 self.scanner.draw_preview(frame)
                 self.scanner.draw_snapshot(frame)
                 self.scanner.draw_scanned_sides(frame)
@@ -329,15 +333,8 @@ class Webcam:
                     self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
                 elif self.check_already_solved():
                     self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
-                else:
-                    # Todo
-                    print("solving")
-            
+                self.solver.draw_preview(frame)
 
-            if self.scrambler.scramble_mode:
-                self.scanner.draw_scrambled_mode(frame)
-            
-            
             cv2.imshow("Rubik's Cube Solver", frame)
 
         self.cam.release()
@@ -350,9 +347,6 @@ class Webcam:
 
         if self.scrambler.scramble_mode and not self.check_correctly_scrambled():
             return Errors.INCORRECTLY_SCRAMBLED
-
-
-
 
         return self.get_result_notation()
 
