@@ -4,13 +4,13 @@ from constants import AppColors
 
 
 def render_text(frame, text, pos, color=AppColors.PLACEHOLDER):
-    cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+    cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 1, cv2.LINE_AA)
 
 
 def get_text_size(text):
     """Get text size based on the default freetype2 loaded font."""
     font = cv2.FONT_HERSHEY_SIMPLEX
-    return cv2.getTextSize(text, font, 1, 2)
+    return cv2.getTextSize(text, font, 0.7, 1)
 
 
 # Taken from https://stackoverflow.com/a/16020102

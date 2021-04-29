@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 
 # Global
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,6 +22,34 @@ TEXT_SIZE = 10
 class AppColors:
     PLACEHOLDER = (43, 43, 43)
     STICKER_CONTOUR = (230, 245, 93)
+
+
+class Moves:
+    LEFT = "L"
+    RIGHT = "R"
+    UP = "U"
+    DOWN = "D"
+    FRONT = "F"
+    BACK = "B"
+    LEFT_PRIM = "L'"
+    RIGHT_PRIM = "R'"
+    UP_PRIM = "U'"
+    DOWN_PRIM = "D'"
+    FRONT_PRIM = "F'"
+    BACK_PRIM = "B'"
+
+
+class AppMode(Enum):
+    CALIBRATION = 1
+    SCANNING = 2
+    SOLVING = 3
+
+
+class RotationCube:
+    LEFT = "L"
+    RIGHT = "R"
+    UP = "U"
+    DOWN = "D"
 
 
 class Keys:
