@@ -23,6 +23,28 @@ class AppColors:
     STICKER_CONTOUR = (230, 245, 93)
 
 
+class Moves:
+    LEFT = "L"
+    RIGHT = "R"
+    UP = "U"
+    DOWN = "D"
+    FRONT = "F"
+    BACK = "B"
+    LEFT_PRIM = "L'"
+    RIGHT_PRIM = "R'"
+    UP_PRIM = "U'"
+    DOWN_PRIM = "D'"
+    FRONT_PRIM = "F'"
+    BACK_PRIM = "B'"
+
+
+class RotationCube:
+    LEFT = "L"
+    RIGHT = "R"
+    UP = "U"
+    DOWN = "D"
+
+
 class Keys:
     SPACE = 32
     ESC = 27
