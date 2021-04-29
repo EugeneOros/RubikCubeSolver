@@ -2,12 +2,14 @@ import cv2
 from .color_detection import color_detector
 from .calibration import Calibration
 from .scanner import Scanner
+from .solver import Solver
 from constants import (
     AppColors,
     Keys,
     Errors,
     Moves,
     RotationCube,
+    AppMode
 )
 
 
@@ -16,12 +18,16 @@ class Webcam:
     def __init__(self):
         self.cam = cv2.VideoCapture(0)
 
+        self.mode = AppMode.SCANNING
+        self.previous_mode = AppMode.SCANNING
+
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         self.width = int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         self.calibration = Calibration(self.width)
         self.scanner = Scanner(self.width, self.height)
+        self.solver = Solver(self.width, self.height)
 
     @staticmethod
     def find_contours(dilated_frame):
@@ -133,6 +139,8 @@ class Webcam:
         return sorted_contours
 
     def draw_move(self, frame, contours, move):
+        if len(contours) < 9:
+            return
         start_index = None
         end_index = None
         if move == Moves.LEFT:
@@ -178,9 +186,11 @@ class Webcam:
             self.draw_arrow(frame, contours[start_index], contours[end_index])
 
     def draw_rotation(self, frame, contours, rotation):
+        if len(contours) < 9:
+            return
         if rotation == RotationCube.LEFT:
             for i in range(0, 9, 3):
-                self.draw_arrow(frame, contours[i], contours[i+2])
+                self.draw_arrow(frame, contours[i], contours[i + 2])
         elif rotation == RotationCube.RIGHT:
             for i in range(8, -1, -3):
                 self.draw_arrow(frame, contours[i], contours[i - 2])
@@ -204,14 +214,14 @@ class Webcam:
         cv2.arrowedLine(frame, point_start, point_end, AppColors.STICKER_CONTOUR, 4, tipLength=0.2)
 
     def draw_contours(self, frame, contours):
-        if self.calibration.calibrate_mode:
+        if self.mode == AppMode.CALIBRATION:
             (x, y, w, h) = contours[4]
             cv2.rectangle(frame, (x, y), (x + w, y + h), AppColors.STICKER_CONTOUR, 2)
         else:
             for index, (x, y, w, h) in enumerate(contours):
                 cv2.rectangle(frame, (x, y), (x + w, y + h), AppColors.STICKER_CONTOUR, 2)
-        # self.draw_move(frame, contours, Moves.FRONT)
-        #self.draw_rotation(frame, contours, RotationCube.RIGHT)
+        self.draw_move(frame, contours, Moves.LEFT)
+        # self.draw_rotation(frame, contours, RotationCube.RIGHT)
 
     def get_result_notation(self):
         """Convert all the sides and their BGR colors to cube notation."""
@@ -257,14 +267,24 @@ class Webcam:
             if key == Keys.ESC:
                 break
 
-            if not self.calibration.calibrate_mode:
+            if self.mode == AppMode.SCANNING:
                 if key == Keys.SPACE:
                     self.scanner.update_snapshot_state(frame)
+                elif key == Keys.S_KEY and self.check_sides_count():
+                    self.mode = AppMode.SOLVING
+
+            if self.mode == AppMode.SOLVING:
+                if key == Keys.S_KEY:
+                    self.mode = AppMode.SCANNING
 
             # Toggle calibrate mode.
             if key == Keys.C_KEY:
                 self.calibration.reset_calibrate_mode()
-                self.calibration.calibrate_mode = not self.calibration.calibrate_mode
+                if self.mode == AppMode.CALIBRATION:
+                    self.mode = self.previous_mode
+                else:
+                    self.previous_mode = self.mode
+                    self.mode = AppMode.CALIBRATION
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             blurred_frame = cv2.blur(gray_frame, (3, 3))
@@ -275,20 +295,27 @@ class Webcam:
             contours = self.find_contours(dilated_frame)
             if len(contours) == 9:
                 self.draw_contours(frame, contours)
-                if not self.calibration.calibrate_mode:
+                if self.mode == AppMode.SCANNING:
                     self.scanner.update_preview_state(frame, contours)
                 elif key == Keys.SPACE and self.calibration.done_calibrating is False:
                     self.calibration.on_space_pressed(frame, contours)
 
-            if self.calibration.calibrate_mode:
+            if self.mode == AppMode.CALIBRATION:
                 self.calibration.draw_current_color_to_calibrate(frame)
                 self.calibration.draw_calibrated_colors(frame)
-            else:
+            elif self.mode == AppMode.SCANNING:
                 self.scanner.draw_preview(frame)
                 self.scanner.draw_snapshot(frame)
                 self.scanner.draw_scanned_sides(frame)
                 self.scanner.draw_2d_cube_state(frame)
-
+            elif self.mode == AppMode.SOLVING:
+                if not (self.check_sides_count() and self.check_color_count()):
+                    self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
+                elif self.check_already_solved():
+                    self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
+                else:
+                    # Todo
+                    print("solving")
             cv2.imshow("Rubik's Cube Solver", frame)
 
         self.cam.release()

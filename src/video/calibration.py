@@ -8,7 +8,6 @@ import cv2
 class Calibration:
     def __init__(self, width):
         self.width = width
-        self.calibrate_mode = False
         self.calibrated_colors = {}
         self.current_color_to_calibrate_index = 0
         self.done_calibrating = False

@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 
 # Global
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +39,12 @@ class Moves:
     BACK_PRIM = "B'"
 
 
+class AppMode(Enum):
+    CALIBRATION = 1
+    SCANNING = 2
+    SOLVING = 3
+
+
 class RotationCube:
     LEFT = "L"
     RIGHT = "R"
@@ -49,6 +56,7 @@ class Keys:
     SPACE = 32
     ESC = 27
     C_KEY = ord("c")
+    S_KEY = ord("s")
 
 
 class ColorBlock:

@@ -19,14 +19,17 @@ class Scanner:
                                (255, 255, 255), (255, 255, 255), (255, 255, 255),
                                (255, 255, 255), (255, 255, 255), (255, 255, 255)]
 
+    def scanned_all_sides(self):
+        return len(self.result_state.keys()) == 6
+
     @staticmethod
     def draw_stickers(frame, stickers, offset_x, offset_y):
         index = -1
         for row in range(3):
             for col in range(3):
                 index += 1
-                x1 = (offset_x + 26 + STICKER_AREA_TILE_SIZE * col) + STICKER_AREA_TILE_GAP * col
-                y1 = (offset_y + 60 + STICKER_AREA_TILE_SIZE * row) + STICKER_AREA_TILE_GAP * row
+                x1 = (offset_x + STICKER_AREA_TILE_SIZE * col) + STICKER_AREA_TILE_GAP * col
+                y1 = (offset_y + STICKER_AREA_TILE_SIZE * row) + STICKER_AREA_TILE_GAP * row
                 x2 = x1 + STICKER_AREA_TILE_SIZE
                 y2 = y1 + STICKER_AREA_TILE_SIZE
 
@@ -49,7 +52,7 @@ class Scanner:
                 )
 
     def draw_preview(self, frame):
-        self.draw_stickers(frame, self.preview_state, STICKER_AREA_OFFSET, STICKER_AREA_OFFSET)
+        self.draw_stickers(frame, self.preview_state, STICKER_AREA_OFFSET+25, STICKER_AREA_OFFSET+100)
 
     def draw_snapshot(self, frame):
         y = STICKER_AREA_TILE_SIZE * 3 + STICKER_AREA_TILE_GAP * 2 + STICKER_AREA_OFFSET * 2
@@ -88,6 +91,10 @@ class Scanner:
 
     def draw_scanned_sides(self, frame):
         text = 'scanned sides: {}/6'.format(len(self.result_state.keys()))
+        if len(self.result_state.keys()) == 6:
+            render_text(frame, "press S to solve cube", (20, 80),)
+        else:
+            render_text(frame, "press C to calibrate", (20, 80), )
         render_text(frame, text, (20, 40))
 
     def draw_2d_cube_state(self, frame):
