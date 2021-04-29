@@ -1,6 +1,6 @@
 import os
 import json
-from src.constants import ROOT_DIR
+from constants import ROOT_DIR
 
 
 class Config:

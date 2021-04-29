@@ -1,8 +1,8 @@
 import numpy as np
 import cv2
 from .helpers import ciede2000, bgr2lab
-from src.config import config
-from src.constants import AppColors, ConfigKeys
+from config import config
+from constants import AppColors, ConfigKeys
 
 
 class ColorDetection:

@@ -1,7 +1,7 @@
-from src.constants import TEXT_SIZE, STICKER_AREA_TILE_SIZE, ConfigKeys
+from constants import TEXT_SIZE, STICKER_AREA_TILE_SIZE, ConfigKeys
 from .helpers import render_text, get_text_size
 from .color_detection import color_detector
-from src.config import config
+from config import config
 import cv2
 
 

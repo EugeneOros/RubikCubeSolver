@@ -1,9 +1,9 @@
-from src.constants import MINI_STICKER_AREA_TILE_GAP, MINI_STICKER_AREA_TILE_SIZE, MINI_STICKER_AREA_OFFSET, AppColors, STICKER_AREA_TILE_SIZE, \
+from constants import MINI_STICKER_AREA_TILE_GAP, MINI_STICKER_AREA_TILE_SIZE, MINI_STICKER_AREA_OFFSET, AppColors, STICKER_AREA_TILE_SIZE, \
     STICKER_AREA_TILE_GAP, STICKER_AREA_OFFSET
-from src.video.color_detection import color_detector
+from video.color_detection import color_detector
 import cv2
 
-from src.video.helpers import render_text
+from video.helpers import render_text
 
 
 class Scanner:

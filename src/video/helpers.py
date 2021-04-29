@@ -1,7 +1,6 @@
 import math
-
 import cv2
-from src.constants import AppColors
+from constants import AppColors
 
 
 def render_text(frame, text, pos, color=AppColors.PLACEHOLDER):

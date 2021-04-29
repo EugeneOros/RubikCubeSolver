@@ -1,7 +1,7 @@
 import sys
 import kociemba
 from video.capture import webcam
-from src.constants import Errors, ColorBlock
+from constants import Errors, ColorBlock
 
 
 def error(state):
