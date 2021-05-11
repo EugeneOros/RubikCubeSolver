@@ -14,7 +14,7 @@ class ColorDetection:
             'blue': (255, 0, 0),
             'green': (0, 255, 0),
             'white': (255, 255, 255),
-            'yellow': (141, 186, 117)
+            'yellow': (0,255,255)
         }
 
         self.cube_color_palette = config.get_setting(ConfigKeys.CUBE_PALETTE, self.prominent_color_palette)

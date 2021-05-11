@@ -25,7 +25,7 @@ def run():
 
     if isinstance(state, int) and state > 0:
         error(state)
-
+    print(state)
     try:
         algorithm = kociemba.solve(state)
         length = len(algorithm.split(' '))

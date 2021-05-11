@@ -229,12 +229,21 @@ class Webcam:
     def get_result_notation(self):
         """Convert all the sides and their BGR colors to cube notation."""
         notation = dict(self.scanner.result_state)
+        
         for side, preview in notation.items():
             for sticker_index, bgr in enumerate(preview):
                 notation[side][sticker_index] = color_detector.convert_bgr_to_notation(bgr)
         combined = ''
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
             combined += ''.join(notation[side])
+        s = (notation['white']
+             + notation['orange'][0:3] + notation['green'][0:3] + notation['red'][0:3] + notation['blue'][0:3]
+             + notation['orange'][3:6] + notation['green'][3:6] + notation['red'][3:6] + notation['blue'][3:6]
+             + notation['orange'][6:9] + notation['green'][6:9] + notation['red'][6:9] + notation['blue'][6:9]
+             + notation['yellow'])
+        # c = Cube(s)
+        # print(c)
+        # print(combined)
         return combined
 
     def check_already_solved(self):
@@ -262,10 +271,19 @@ class Webcam:
     def check_sides_count(self):
         return len(self.scanner.result_state.keys()) == 6
 
-    def check_correctly_scrambled(self):
-        # print(self.scanner.result_state.items())
-        # print(self.expected_state)
-        pass
+    def check_correctly_scrambled(self, scanned):
+        combined = ''
+        expected = self.expected_state.cube
+        expected_centers = ['U', 'L', 'F', 'R', 'B', 'D']
+        for i, side in enumerate(expected):
+            side = [side[0], side[1], side[2], side[7], expected_centers[i], side[3], side[6], side[5], side[4]]
+            expected[i] = side
+            # side.insert(4, expected_centers[i])
+        expected = [expected[0], expected[3], expected[2], expected[5], expected[1], expected[4]]
+        for side in expected:
+            for c in side:
+                combined += c
+        return scanned == combined
 
 
     def run(self):
@@ -348,13 +366,12 @@ class Webcam:
         elif self.check_already_solved():
             return Errors.ALREADY_SOLVED
 
-        if self.scrambler.scramble_mode and not self.check_correctly_scrambled():
+        scanned = self.get_result_notation()
+
+        if self.scrambler.scramble_mode and not self.check_correctly_scrambled(scanned):
             return Errors.INCORRECTLY_SCRAMBLED
 
-
-
-
-        return self.get_result_notation()
+        return scanned
 
 
 webcam = Webcam()
