@@ -19,7 +19,7 @@ def error(state):
 
 def run():
     try:
-        _, state = webcam.run()
+        state = webcam.run()
     except KeyboardInterrupt:
         state = Errors.STOP
 
