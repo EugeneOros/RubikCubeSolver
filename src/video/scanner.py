@@ -95,7 +95,7 @@ class Scanner:
     def draw_scanned_sides(self, frame):
         text = 'scanned sides: {}/6'.format(len(self.result_state.keys()))
         if len(self.result_state.keys()) == 6:
-            render_text(frame, "press S to solve cube", (20, 80),)
+            render_text(frame, "press ENTER to solve cube", (20, 80),)
         else:
             render_text(frame, "press C to calibrate", (20, 80), )
         render_text(frame, text, (20, 40))

@@ -58,6 +58,19 @@ class ColorDetection:
         closest = min(distances, key=lambda item: item['distance'])
         return closest
 
+    def convert_letter_to_color(self, letter):
+        notations = {
+            'green': 'F',
+            'white': 'U',
+            'blue': 'B',
+            'red': 'R',
+            'orange': 'L',
+            'yellow': 'D'
+        }
+        for color_name, color_bgr in self.cube_color_palette.items():
+            if notations[color_name] == letter:
+                return color_bgr
+
     def convert_bgr_to_notation(self, bgr):
         notations = {
             'green': 'F',

@@ -3,6 +3,7 @@ from .color_detection import color_detector
 from .calibration import Calibration
 from .scanner import Scanner
 from .solver import Solver
+import kociemba
 from constants import (
     AppColors,
     Keys,
@@ -11,6 +12,8 @@ from constants import (
     RotationCube,
     AppMode
 )
+
+from rubik.cube import Cube
 from .scrambler import Scrambler
 
 
@@ -223,7 +226,7 @@ class Webcam:
         else:
             for index, (x, y, w, h) in enumerate(contours):
                 cv2.rectangle(frame, (x, y), (x + w, y + h), AppColors.STICKER_CONTOUR, 2)
-        self.draw_move(frame, contours, Moves.LEFT)
+        # self.draw_move(frame, contours, Moves.LEFT)
         # self.draw_rotation(frame, contours, RotationCube.RIGHT)
 
     def get_result_notation(self):
@@ -285,7 +288,6 @@ class Webcam:
                 combined += c
         return scanned == combined
 
-
     def run(self):
         while True:
             _, frame = self.cam.read()
@@ -294,15 +296,21 @@ class Webcam:
             if key == Keys.ESC:
                 break
 
+            if key == Keys.ENTER:
+                if self.mode == AppMode.SOLVING:
+                    self.mode = AppMode.SCANNING
+                # elif self.mode == AppMode.SCANNING and self.check_sides_count():
+                elif self.mode == AppMode.SCANNING:
+                    self.mode = AppMode.SOLVING
+                    kociemba_str = "RRRBUFBUFRRBRRDRRFUFDUFDUFDFDBFDBLLLFLLULLBLLUUUBBBDDD"
+                    cube_str = "RRR BUF BUF FLL UFD RRB UUU ULL UFD RRD BBB BLL UFD RRF DDD FDB FDB LLL"
+                    # kociemba_str, cube_str = self.get_result_notation()
+                    algorithm = kociemba.solve(kociemba_str)
+                    self.solver.set_cube(cube_str, algorithm)
+
             if self.mode == AppMode.SCANNING:
                 if key == Keys.SPACE:
                     self.scanner.update_snapshot_state(frame)
-                elif key == Keys.S_KEY and self.check_sides_count():
-                    self.mode = AppMode.SOLVING
-
-            if self.mode == AppMode.SOLVING:
-                if key == Keys.S_KEY:
-                    self.mode = AppMode.SCANNING
 
             # Toggle calibrate mode.
             if key == Keys.C_KEY:
@@ -331,6 +339,8 @@ class Webcam:
                 self.draw_contours(frame, contours)
                 if self.mode == AppMode.SCANNING:
                     self.scanner.update_preview_state(frame, contours)
+                if self.mode == AppMode.SOLVING:
+                    self.solver.update_preview_state(frame, contours)
                 elif key == Keys.SPACE and self.calibration.done_calibrating is False:
                     self.calibration.on_space_pressed(frame, contours)
 
@@ -338,24 +348,21 @@ class Webcam:
                 self.calibration.draw_current_color_to_calibrate(frame)
                 self.calibration.draw_calibrated_colors(frame)
             elif self.mode == AppMode.SCANNING:
+                if self.scrambler.scramble_mode:
+                    self.scanner.draw_scrambled_mode(frame)
                 self.scanner.draw_preview(frame)
                 self.scanner.draw_snapshot(frame)
                 self.scanner.draw_scanned_sides(frame)
                 self.scanner.draw_2d_cube_state(frame)
             elif self.mode == AppMode.SOLVING:
-                if not (self.check_sides_count() and self.check_color_count()):
-                    self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
-                elif self.check_already_solved():
-                    self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
-                else:
-                    # Todo
-                    print("solving")
-            
+                # if not (self.check_sides_count() and self.check_color_count()):
+                #     self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
+                # elif self.check_already_solved():
+                #     self.solver.draw_error(frame, Errors.INCORRECTLY_SCANNED)
+                self.solver.draw_preview(frame)
+                self.solver.draw_expected_side(frame)
+                self.solver.draw_expected_result(frame)
 
-            if self.scrambler.scramble_mode:
-                self.scanner.draw_scrambled_mode(frame)
-            
-            
             cv2.imshow("Rubik's Cube Solver", frame)
 
         self.cam.release()
