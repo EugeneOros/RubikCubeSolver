@@ -36,7 +36,7 @@ class Scrambler():
         for x in scr:
             cube.move(str(x[0]) + str(x[1]), moves.index(x[0]))
 
-        scr = ''.join(str(scr[x][0]) + str(scr[x][1]) + ' ' for x in range(len)) + "[" + str(len) + "]"
+        scr = ''.join((str(scr[x][0]) + str(scr[x][1])) + ' ' for x in range(len)) + "[" + str(len) + "]"
         # print(cube.cube)
         # print(scr)
         return (scr, cube)
@@ -47,8 +47,8 @@ class Scrambler():
 
 class Cube:
     def __init__(self):
-        self.cube = [['w', 'w', 'w', 'w', 'w', 'w', 'w', 'w'], ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o'], ['g', 'g', 'g', 'g', 'g', 'g', 'g', 'g'],
-                     ['r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'], ['b', 'b', 'b', 'b', 'b', 'b', 'b', 'b'], ['y', 'y', 'y', 'y', 'y', 'y', 'y', 'y']]
+        self.cube = [['U', 'U', 'U', 'U', 'U', 'U', 'U', 'U'], ['L', 'L', 'L', 'L', 'L', 'L', 'L', 'L'], ['F', 'F', 'F', 'F', 'F', 'F', 'F', 'F'],
+                     ['R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'], ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'], ['D', 'D', 'D', 'D', 'D', 'D', 'D', 'D']]
 
     def faceMove(self, x):
         self.cube[x][0], self.cube[x][6], self.cube[x][4], self.cube[x][2] = self.cube[x][6], self.cube[x][4], self.cube[x][2], self.cube[x][0]

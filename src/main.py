@@ -19,13 +19,13 @@ def error(state):
 
 def run():
     try:
-        _, state = webcam.run()
+        state = webcam.run()
     except KeyboardInterrupt:
         state = Errors.STOP
 
     if isinstance(state, int) and state > 0:
         error(state)
-
+    print(state)
     try:
         algorithm = kociemba.solve(state)
         length = len(algorithm.split(' '))
