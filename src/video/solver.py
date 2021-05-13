@@ -37,10 +37,10 @@ class Solver:
                                       (255, 255, 255), (255, 255, 255), (255, 255, 255),
                                       (255, 255, 255), (255, 255, 255), (255, 255, 255)]
 
-    def set_cube(self, cube_str, algorithm_str):
+    def set_cube(self, cube_str, algorithm_str, frame):
         self.cube = Cube(cube_str)
         print(algorithm_str)
-
+        print(self.cube)
         for move in algorithm_str.split(" "):
             if move == move[0] + "2":
                 self.append_move_from_str(move[0])
@@ -49,8 +49,14 @@ class Solver:
                 # self.moves.append(self.get_move_from_str(move[0]))
             else:
                 self.append_move_from_str(move)
-        print(self.moves)
-        self.next_move()
+        # print(self.moves)
+
+        # for move in self.moves:
+        #     self.make_cube_move(move=move)
+        #     print(move)
+        #     print(self.cube)
+
+        self.next_move(frame=frame)
         # self.current_move_index = 0
         # state = []
         # for i in self.return_side(self.cube, CubePosition.FRONT):
@@ -104,42 +110,48 @@ class Solver:
                 if self.moves[self.current_move_index] == Moves.BACK:
                     self.draw_move(frame=frame, move=Moves.RIGHT, contours=contours)
                 else:
-                    self.draw_move(frame=frame, move=Moves.LEFT, contours=contours)
+                    self.draw_move(frame=frame, move=Moves.RIGHT_PRIM, contours=contours)
             elif self.back_move_count == 2:
                 self.draw_rotation(frame, contours, RotationCube.LEFT)
             else:
                 self.draw_move(frame=frame, move=self.moves[self.current_move_index], contours=contours)
         if self.preview_state == self.expected_result_state:
             print("next_done")
-            self.next_move()
+            self.next_move(frame)
 
-    def next_move(self):
+    def next_move(self, frame):
+        if self.current_move_index == len(self.moves)-1:
+            self.draw_msg(frame=frame, msg="Congratulations!!! Cube solved")
+            print("solved")
+            return
+
         if self.current_move_index is None:
             self.current_move_index = 0
         else:
             if self.back_move_count == 3:
                 self.current_move_index += 1
         state = []
-        #
-        # if self.back_move_count < 3:
-        #     self.back_move_count += 1
 
         if self.moves[self.current_move_index] == Moves.BACK or self.moves[self.current_move_index] == Moves.BACK_PRIM:
             if self.back_move_count < 3:
-                print(self.back_move_count)
+                # print(self.back_move_count)
                 self.back_move_count += 1
             else:
                 self.back_move_count = 0
+            if self.back_move_count == 3:
+                self.current_move_index += 1
+                if self.moves[self.current_move_index] == Moves.BACK:
+                    self.back_move_count = 0
 
         if self.back_move_count == 0:
-            print("got 0")
+            # print("got 0")
             expected_side = CubePosition.FRONT
             result_side = CubePosition.RIGHT
         elif self.back_move_count == 1:
-            print("got 1")
+            # print("got 1")
             result_side = expected_side = CubePosition.RIGHT
         elif self.back_move_count == 2:
-            print("got 2")
+            # print("got 2")
             expected_side = CubePosition.RIGHT
             result_side = CubePosition.FRONT
         else:
@@ -158,6 +170,13 @@ class Solver:
             color = color_detector.convert_letter_to_color(i)
             state.append(color)
         self.expected_result_state = state
+
+        if self.current_move_index is None:
+            print("none")
+        else:
+            print(self.moves[self.current_move_index])
+        print(self.back_move_count)
+        print(self.cube)
 
     def make_cube_move(self, move):
         if move == Moves.RIGHT:
@@ -259,6 +278,14 @@ class Solver:
         point_end = (x_end, y_end)
         cv2.arrowedLine(frame, point_start, point_end, AppColors.PLACEHOLDER, 7, tipLength=0.2)
         cv2.arrowedLine(frame, point_start, point_end, AppColors.STICKER_CONTOUR, 4, tipLength=0.2)
+
+    def draw_msg(self, frame, msg):
+        y_offset = 30
+        (text_size_width, text_size_height), _ = get_text_size(msg)
+        render_text(frame, msg, (int(self.width / 2 - text_size_width / 2), y_offset))
+        # text = 'Press ENTER to try again.'
+        # (text_size_width, text_size_height), _ = get_text_size(text)
+        # render_text(frame, 'Press S to try again.', (int(self.width / 2 - text_size_width / 2), y_offset + 30))
 
     def draw_error(self, frame, error):
         if error == Errors.INCORRECTLY_SCANNED:

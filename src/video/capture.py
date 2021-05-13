@@ -244,10 +244,10 @@ class Webcam:
              + notation['orange'][3:6] + notation['green'][3:6] + notation['red'][3:6] + notation['blue'][3:6]
              + notation['orange'][6:9] + notation['green'][6:9] + notation['red'][6:9] + notation['blue'][6:9]
              + notation['yellow'])
-        # c = Cube(s)
-        # print(c)
-        # print(combined)
-        return combined
+        c = Cube(s)
+        print(c)
+        print(combined)
+        return combined, c
 
     def check_already_solved(self):
         for side in ['white', 'red', 'green', 'yellow', 'orange', 'blue']:
@@ -301,12 +301,16 @@ class Webcam:
                     self.mode = AppMode.SCANNING
                 # elif self.mode == AppMode.SCANNING and self.check_sides_count():
                 elif self.mode == AppMode.SCANNING:
-                    self.mode = AppMode.SOLVING
-                    kociemba_str = "RRRBUFBUFRRBRRDRRFUFDUFDUFDFDBFDBLLLFLLULLBLLUUUBBBDDD"
-                    cube_str = "RRR BUF BUF FLL UFD RRB UUU ULL UFD RRD BBB BLL UFD RRF DDD FDB FDB LLL"
-                    # kociemba_str, cube_str = self.get_result_notation()
-                    algorithm = kociemba.solve(kociemba_str)
-                    self.solver.set_cube(cube_str, algorithm)
+
+                    try:
+                        kociemba_str, cube_str = self.get_result_notation()
+                        self.mode = AppMode.SOLVING
+                        # kociemba_str = "RRRBUFBUFRRBRRDRRFUFDUFDUFDFDBFDBLLLFLLULLBLLUUUBBBDDD"
+                        # cube_str = "RRR BUF BUF FLL UFD RRB UUU ULL UFD RRD BBB BLL UFD RRF DDD FDB FDB LLL"
+                        algorithm = kociemba.solve(kociemba_str) #"B' R' L'"
+                        self.solver.set_cube(cube_str, algorithm, frame)
+                    except KeyError:
+                        self.mode = AppMode.SCANNING
 
             if self.mode == AppMode.SCANNING:
                 if key == Keys.SPACE:
