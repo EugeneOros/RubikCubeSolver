@@ -18,10 +18,14 @@ from constants import (
 
 
 class Solver:
+    moves = []
+    current_move_index = None
+    back_move_count = 3
+
     def __init__(self, width, height):
         self.height = height
-        self.cube = None
         self.width = width
+        self.cube = None
         self.average_sticker_colors = {}
         self.preview_state = [(255, 255, 255), (255, 255, 255), (255, 255, 255),
                               (255, 255, 255), (255, 255, 255), (255, 255, 255),
@@ -37,29 +41,149 @@ class Solver:
         self.cube = Cube(cube_str)
         print(algorithm_str)
 
-        moves = []
         for move in algorithm_str.split(" "):
-            if move == move[0]+"2":
-                moves.append(move[0])
-                moves.append(move[0])
+            if move == move[0] + "2":
+                self.append_move_from_str(move[0])
+                self.append_move_from_str(move[0])
+                # self.moves.append(self.get_move_from_str(move[0]))
+                # self.moves.append(self.get_move_from_str(move[0]))
             else:
-                moves.append(move)
-        print(moves)
+                self.append_move_from_str(move)
+        print(self.moves)
+        self.next_move()
+        # self.current_move_index = 0
+        # state = []
+        # for i in self.return_side(self.cube, CubePosition.FRONT):
+        #     color = color_detector.convert_letter_to_color(i)
+        #     state.append(color)
+        # self.expected_side_state = state
+        # self.cube.Li()
+        # state = []
+        # for i in self.return_side(self.cube, CubePosition.FRONT):
+        #     color = color_detector.convert_letter_to_color(i)
+        #     state.append(color)
+        # self.expected_result_state = state
 
+    def append_move_from_str(self, string):
+        if string == "R":
+            self.moves.append(Moves.RIGHT)
+        elif string == "L":
+            self.moves.append(Moves.LEFT)
+        elif string == "F":
+            self.moves.append(Moves.FRONT)
+        elif string == "U":
+            self.moves.append(Moves.UP)
+        elif string == "D":
+            self.moves.append(Moves.DOWN)
+        elif string == "R'":
+            self.moves.append(Moves.RIGHT_PRIM)
+        elif string == "L'":
+            self.moves.append(Moves.LEFT_PRIM)
+        elif string == "F'":
+            self.moves.append(Moves.FRONT_PRIM)
+        elif string == "U'":
+            self.moves.append(Moves.UP_PRIM)
+        elif string == "D'":
+            self.moves.append(Moves.DOWN_PRIM)
+        elif string == "B":
+            self.moves.append(Moves.BACK)
+            # self.moves.append(Moves.RIGHT_ROTATE)
+            # self.moves.append(Moves.RIGHT)
+            # self.moves.append(Moves.LEFT_ROTATE)
+        elif string == "B'":
+            self.moves.append(Moves.BACK_PRIM)
+            # self.moves.append(Moves.RIGHT_ROTATE)
+            # self.moves.append(Moves.LEFT)
+            # self.moves.append(Moves.LEFT_ROTATE)
 
+    def draw_moves_and_next(self, frame, contours):
+        if self.preview_state == self.expected_side_state:
+            if self.back_move_count == 0:
+                self.draw_rotation(frame, contours, RotationCube.RIGHT)
+            elif self.back_move_count == 1:
+                if self.moves[self.current_move_index] == Moves.BACK:
+                    self.draw_move(frame=frame, move=Moves.RIGHT, contours=contours)
+                else:
+                    self.draw_move(frame=frame, move=Moves.LEFT, contours=contours)
+            elif self.back_move_count == 2:
+                self.draw_rotation(frame, contours, RotationCube.LEFT)
+            else:
+                self.draw_move(frame=frame, move=self.moves[self.current_move_index], contours=contours)
+        if self.preview_state == self.expected_result_state:
+            print("next_done")
+            self.next_move()
+
+    def next_move(self):
+        if self.current_move_index is None:
+            self.current_move_index = 0
+        else:
+            if self.back_move_count == 3:
+                self.current_move_index += 1
         state = []
-        for i in self.return_side(self.cube, CubePosition.FRONT):
+        #
+        # if self.back_move_count < 3:
+        #     self.back_move_count += 1
+
+        if self.moves[self.current_move_index] == Moves.BACK or self.moves[self.current_move_index] == Moves.BACK_PRIM:
+            if self.back_move_count < 3:
+                print(self.back_move_count)
+                self.back_move_count += 1
+            else:
+                self.back_move_count = 0
+
+        if self.back_move_count == 0:
+            print("got 0")
+            expected_side = CubePosition.FRONT
+            result_side = CubePosition.RIGHT
+        elif self.back_move_count == 1:
+            print("got 1")
+            result_side = expected_side = CubePosition.RIGHT
+        elif self.back_move_count == 2:
+            print("got 2")
+            expected_side = CubePosition.RIGHT
+            result_side = CubePosition.FRONT
+        else:
+            result_side = expected_side = CubePosition.FRONT
+
+        for i in self.return_side(self.cube, expected_side):
             color = color_detector.convert_letter_to_color(i)
             state.append(color)
         self.expected_side_state = state
-        self.cube.L()
+
+        if self.back_move_count == 1 or self.back_move_count == 3:
+            self.make_cube_move(self.moves[self.current_move_index])
+
         state = []
-        for i in self.return_side(self.cube, CubePosition.FRONT):
+        for i in self.return_side(self.cube, result_side):
             color = color_detector.convert_letter_to_color(i)
             state.append(color)
         self.expected_result_state = state
 
-
+    def make_cube_move(self, move):
+        if move == Moves.RIGHT:
+            self.cube.R()
+        elif move == Moves.LEFT:
+            self.cube.L()
+        elif move == Moves.FRONT:
+            self.cube.F()
+        elif move == Moves.UP:
+            self.cube.U()
+        elif move == Moves.DOWN:
+            self.cube.D()
+        elif move == Moves.RIGHT_PRIM:
+            self.cube.Ri()
+        elif move == Moves.LEFT_PRIM:
+            self.cube.Li()
+        elif move == Moves.FRONT_PRIM:
+            self.cube.Fi()
+        elif move == Moves.UP_PRIM:
+            self.cube.Ui()
+        elif move == Moves.DOWN_PRIM:
+            self.cube.Di()
+        elif move == Moves.BACK:
+            self.cube.B()
+        elif move == Moves.BACK_PRIM:
+            self.cube.Bi()
 
     def draw_move(self, frame, contours, move):
         if len(contours) < 9:

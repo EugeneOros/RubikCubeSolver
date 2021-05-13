@@ -341,6 +341,7 @@ class Webcam:
                     self.scanner.update_preview_state(frame, contours)
                 if self.mode == AppMode.SOLVING:
                     self.solver.update_preview_state(frame, contours)
+                    self.solver.draw_moves_and_next(frame, contours)
                 elif key == Keys.SPACE and self.calibration.done_calibrating is False:
                     self.calibration.on_space_pressed(frame, contours)
 

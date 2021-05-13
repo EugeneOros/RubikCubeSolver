@@ -48,6 +48,10 @@ class Moves:
     DOWN_PRIM = "D'"
     FRONT_PRIM = "F'"
     BACK_PRIM = "B'"
+    LEFT_ROTATE = "L_ROTATE"
+    RIGHT_ROTATE = "R_ROTATE"
+    UP_ROTATE = "U_ROTATE"
+    DOWN_ROTATE = "D_ROTATE"
 
 
 class AppMode(Enum):
