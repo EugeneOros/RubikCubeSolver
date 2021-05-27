@@ -59,7 +59,10 @@ class Scanner:
         # self.draw_stickers(frame, self.snapshot_state, STICKER_AREA_OFFSET, y)
 
     def draw_scrambled_mode(self, frame):
-        render_text(frame, "Scramble mode ON", (370,350))
+        render_text(frame, "Scramble mode ON", (400,40))
+        
+    def draw_scramble(self, frame, scramble):
+        render_text(frame, str(scramble), (10, 460), size=0.4)
 
     def update_preview_state(self, frame, contours):
         max_average_rounds = 8

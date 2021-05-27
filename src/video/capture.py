@@ -349,11 +349,13 @@ class Webcam:
                 elif key == Keys.SPACE and self.calibration.done_calibrating is False:
                     self.calibration.on_space_pressed(frame, contours)
 
+
             if self.mode == AppMode.CALIBRATION:
                 self.calibration.draw_current_color_to_calibrate(frame)
                 self.calibration.draw_calibrated_colors(frame)
             elif self.mode == AppMode.SCANNING:
                 if self.scrambler.scramble_mode:
+                    self.scanner.draw_scramble(frame, scramble[0:-4])
                     self.scanner.draw_scrambled_mode(frame)
                 self.scanner.draw_preview(frame)
                 self.scanner.draw_snapshot(frame)
