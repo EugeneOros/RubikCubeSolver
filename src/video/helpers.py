@@ -3,9 +3,9 @@ import cv2
 from constants import AppColors
 
 
-def render_text(frame, text, pos, color=AppColors.PLACEHOLDER):
-    cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 0.7, AppColors.PLACEHOLDER, 2, cv2.LINE_AA)
-    cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, 0.7, AppColors.STICKER_CONTOUR, 1, cv2.LINE_AA)
+def render_text(frame, text, pos, size=0.7, color=AppColors.PLACEHOLDER):
+    cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, size, AppColors.PLACEHOLDER, 2, cv2.LINE_AA)
+    cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, size, AppColors.STICKER_CONTOUR, 1, cv2.LINE_AA)
 
 
 def get_text_size(text):
